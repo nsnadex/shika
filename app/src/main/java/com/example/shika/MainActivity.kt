@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -45,6 +47,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -183,31 +187,43 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
 
 @Composable
 fun DrawBoundingBoxes(faces: List<Rect>, offset: Dp) {
-//    val context = LocalContext.current
-//    val shikaBitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.assets, "shika2.png"))    // キャンバスに顔の位置を描画
+    val context = LocalContext.current
+    var shikaBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val bitmap = ImageDecoder.decodeBitmap(
+                ImageDecoder.createSource(
+                    context.assets,
+                    "shika2.png"
+                )
+            )
+            shikaBitmap = bitmap.asImageBitmap()
+        }
+    }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         faces.forEach { face ->
-            drawRect(
-                color = Color.Blue,
-                topLeft = androidx.compose.ui.geometry.Offset(face.left, face.top + offset.toPx()),
-                size = androidx.compose.ui.geometry.Size(face.right - face.left, face.bottom - face.top),
-                style = Stroke(width = 2.dp.toPx())
-            )
+//            drawRect(
+//                color = Color.Blue,
+//                topLeft = androidx.compose.ui.geometry.Offset(face.left, face.top + offset.toPx()),
+//                size = androidx.compose.ui.geometry.Size(face.right - face.left, face.bottom - face.top), //               style = Stroke(width = 2.dp.toPx())
+//            )
 
             // 画像を描画
-//            val faceWidth = face.right - face.left
-//            val faceHeight = face.bottom - face.top
-//            val scaledShikaBitmap = Bitmap.createScaledBitmap(shikaBitmap, (faceWidth * 4).toInt(), (faceHeight * 4).toInt(), true)
-//            val scaledShikaBitmap =shikaBitmap
+            shikaBitmap?.let { bitmap ->
+                val faceWidth = face.right - face.left
+                val faceHeight = face.bottom - face.top
+                val scaledShikaBitmap = Bitmap.createScaledBitmap(bitmap.asAndroidBitmap(), (faceWidth * 3).toInt(), (faceHeight * 3).toInt(), true)
+                val scaledImageBitmap = scaledShikaBitmap.asImageBitmap()
 
- //           val centerX = face.left + faceWidth / 2
- //           val centerY = face.top + offset.toPx() + faceHeight / 2
- //           drawImage(
- //               image = scaledShikaBitmap.asImageBitmap(),
- //               topLeft = Offset(centerX - scaledShikaBitmap.width / 2, centerY - scaledShikaBitmap.height / 2)
- //           )
-        }
+                val centerX = face.left + faceWidth / 2
+                val centerY = face.top + offset.toPx() + faceHeight / 2
+                drawImage(
+                    image = scaledImageBitmap,
+                    topLeft = Offset(centerX - scaledImageBitmap.width / 2, centerY - scaledImageBitmap.height / 2)
+                )
+            }        }
     }
 }
 
