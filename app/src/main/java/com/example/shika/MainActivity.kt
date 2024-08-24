@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -42,6 +43,7 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 
 class MainActivity : ComponentActivity() {
@@ -181,15 +183,31 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
 
 @Composable
 fun DrawBoundingBoxes(faces: List<Rect>, offset: Dp) {
-    // キャンバスに顔の位置を描画
+//    val context = LocalContext.current
+//    val shikaBitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.assets, "shika2.png"))    // キャンバスに顔の位置を描画
+
     Canvas(modifier = Modifier.fillMaxSize()) {
         faces.forEach { face ->
             drawRect(
-                color = Color.Red,
+                color = Color.Blue,
                 topLeft = androidx.compose.ui.geometry.Offset(face.left, face.top + offset.toPx()),
                 size = androidx.compose.ui.geometry.Size(face.right - face.left, face.bottom - face.top),
-                style = Stroke(width = 4.dp.toPx())
+                style = Stroke(width = 2.dp.toPx())
             )
+
+            // 画像を描画
+//            val faceWidth = face.right - face.left
+//            val faceHeight = face.bottom - face.top
+//            val scaledShikaBitmap = Bitmap.createScaledBitmap(shikaBitmap, (faceWidth * 4).toInt(), (faceHeight * 4).toInt(), true)
+//            val scaledShikaBitmap =shikaBitmap
+
+ //           val centerX = face.left + faceWidth / 2
+ //           val centerY = face.top + offset.toPx() + faceHeight / 2
+ //           drawImage(
+ //               image = scaledShikaBitmap.asImageBitmap(),
+ //               topLeft = Offset(centerX - scaledShikaBitmap.width / 2, centerY - scaledShikaBitmap.height / 2)
+ //           )
         }
     }
 }
+
