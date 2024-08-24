@@ -41,6 +41,8 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,8 +119,9 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
+    val metrics = LocalContext.current.resources.displayMetrics
+    val screenWidth = metrics.widthPixels
+    val screenHeight = metrics.heightPixels
 
     // 画像URIが変更されたときに実行される処理
     LaunchedEffect(imageUri) {
@@ -126,7 +129,7 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
         val source = ImageDecoder.createSource(context.contentResolver, imageUri)
         val decodedBitmap = ImageDecoder.decodeBitmap(source)
         // 画面サイズに合わせてビットマップをスケーリング
-        val scaledBitmap = Bitmap.createScaledBitmap(decodedBitmap, screenWidth, screenHeight, true)
+        val scaledBitmap = Bitmap.createScaledBitmap(decodedBitmap, screenWidth, (decodedBitmap.height * screenWidth) / decodedBitmap.width, true)
         // 入力画像を作成
         val inputImage = InputImage.fromBitmap(scaledBitmap, 0)
         bitmap = scaledBitmap
@@ -159,27 +162,31 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
 
         // 画像を表示
         bitmap?.let {
+            val offsetPx = (imageHeight - it.height) / 2
+            val offsetDp = with(LocalDensity.current) { offsetPx.toDp() }
             Image(
                 bitmap = it.asImageBitmap(),
                 contentDescription = null,
+                modifier = Modifier
+                    .offset(y = offsetDp),
 //                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
             )
+            // 顔の位置に赤い枠を描画
+            DrawBoundingBoxes(faces = faces, offset = offsetDp)
         }
-        // 顔の位置に赤い枠を描画
-        DrawBoundingBoxes(faces = faces)
     }
 }
 
 
 @Composable
-fun DrawBoundingBoxes(faces: List<Rect>) {
+fun DrawBoundingBoxes(faces: List<Rect>, offset: Dp) {
     // キャンバスに顔の位置を描画
     Canvas(modifier = Modifier.fillMaxSize()) {
         faces.forEach { face ->
             drawRect(
                 color = Color.Red,
-                topLeft = androidx.compose.ui.geometry.Offset(face.left, face.top),
+                topLeft = androidx.compose.ui.geometry.Offset(face.left, face.top + offset.toPx()),
                 size = androidx.compose.ui.geometry.Size(face.right - face.left, face.bottom - face.top),
                 style = Stroke(width = 4.dp.toPx())
             )
