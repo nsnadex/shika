@@ -134,8 +134,24 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
         // 画像をデコードしてビットマップに変換
         val source = ImageDecoder.createSource(context.contentResolver, imageUri)
         val decodedBitmap = ImageDecoder.decodeBitmap(source)
+
         // 画面サイズに合わせてビットマップをスケーリング
-        val scaledBitmap = Bitmap.createScaledBitmap(decodedBitmap, screenWidth, (decodedBitmap.height * screenWidth) / decodedBitmap.width, true)
+        val scaledBitmap = if (screenWidth < screenHeight) {
+            Bitmap.createScaledBitmap(
+                decodedBitmap,
+                screenWidth,
+                (decodedBitmap.height * screenWidth) / decodedBitmap.width,
+                true
+            )
+        } else {
+            Bitmap.createScaledBitmap(
+                decodedBitmap,
+                (decodedBitmap.width * screenHeight) / decodedBitmap.height,
+                screenHeight,
+                true
+            )
+        } ?: decodedBitmap
+
         // 入力画像を作成
         val inputImage = InputImage.fromBitmap(scaledBitmap, 0)
         bitmap = scaledBitmap
@@ -168,25 +184,27 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
 
         // 画像を表示
         bitmap?.let {
-            val offsetPx = (imageHeight - it.height) / 2
-            val offsetDp = with(LocalDensity.current) { offsetPx.toDp() }
+            val offsetPxWidth = (imageWidth - it.width) / 2
+            val offsetDpWidth = with(LocalDensity.current) { offsetPxWidth.toDp() }
+            val offsetPxHeight = (imageHeight - it.height) / 2
+            val offsetDpHeight = with(LocalDensity.current) { offsetPxHeight.toDp() }
             Image(
                 bitmap = it.asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier
-                    .offset(y = offsetDp),
-//                modifier = Modifier.fillMaxSize(),
+//                    .offset(x = offsetDpWidth, y = offsetDpHeight),
+                    .align(Alignment.Center),
                 contentScale = ContentScale.Crop
             )
-            // 顔の位置に赤い枠を描画
-            DrawBoundingBoxes(faces = faces, offset = offsetDp)
+            // 顔の位置に枠を描画
+            DrawBoundingBoxes(faces = faces, offsetWidth = offsetDpWidth, offsetHeight = offsetDpHeight)
         }
     }
 }
 
 
 @Composable
-fun DrawBoundingBoxes(faces: List<Rect>, offset: Dp) {
+fun DrawBoundingBoxes(faces: List<Rect>, offsetWidth: Dp, offsetHeight: Dp) {
     val context = LocalContext.current
     var shikaBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
 
@@ -217,8 +235,8 @@ fun DrawBoundingBoxes(faces: List<Rect>, offset: Dp) {
                 val scaledShikaBitmap = Bitmap.createScaledBitmap(bitmap.asAndroidBitmap(), (faceWidth * 3).toInt(), (faceHeight * 3).toInt(), true)
                 val scaledImageBitmap = scaledShikaBitmap.asImageBitmap()
 
-                val centerX = face.left + faceWidth / 2
-                val centerY = face.top + offset.toPx() + faceHeight / 2
+                val centerX = face.left + offsetWidth.toPx() + faceWidth / 2
+                val centerY = face.top + offsetHeight.toPx() + faceHeight / 2
                 drawImage(
                     image = scaledImageBitmap,
                     topLeft = Offset(centerX - scaledImageBitmap.width / 2, centerY - scaledImageBitmap.height / 2)
