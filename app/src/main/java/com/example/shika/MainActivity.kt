@@ -213,7 +213,7 @@ fun DrawBoundingBoxes(faces: List<Rect>, offsetWidth: Dp, offsetHeight: Dp) {
             val bitmap = ImageDecoder.decodeBitmap(
                 ImageDecoder.createSource(
                     context.assets,
-                    "shika2.png"
+                    "tuno1.png"
                 )
             )
             shikaBitmap = bitmap.asImageBitmap()
