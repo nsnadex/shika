@@ -1,6 +1,8 @@
 package com.example.shika
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.graphics.Paint
 import android.graphics.RectF
@@ -49,6 +51,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +75,9 @@ fun ImagePickerScreen() {
     val context = LocalContext.current
     var scale by remember { mutableStateOf(1f) }
     var faces by remember { mutableStateOf<List<Rect>>(emptyList()) }
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
+    var currentImage by remember { mutableStateOf("tuno1.png") }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -81,6 +87,29 @@ fun ImagePickerScreen() {
         if (imageUri == null) {
             Button(onClick = { launcher.launch("image/*") }) {
                 Text(text = "画像を選択")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = {
+                currentImage = if (currentImage == "tuno1.png") "tuno2.png" else "tuno1.png"
+            }) {
+                Text(text = "ツノ切り替え")
+            }
+
+            val bitmap = loadImageFromAssets(context, currentImage)
+            bitmap?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(100.dp)  // アイコンサイズに変更
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            translationX = offsetX,
+                            translationY = offsetY
+                        )
+                )
             }
         } else {
             Box(
@@ -104,7 +133,7 @@ fun ImagePickerScreen() {
                     )
             ) {
                 imageUri?.let {
-                    DisplayImageWithBoundingBox(imageUri = it)
+                    DisplayImageWithBoundingBox(imageUri = it, currentImage = currentImage)
                 }
                 //                Image(
 //                    painter = rememberImagePainter(data = imageUri),
@@ -119,7 +148,19 @@ fun ImagePickerScreen() {
 }
 
 @Composable
-fun DisplayImageWithBoundingBox(imageUri: Uri) {
+fun loadImageFromAssets(context: Context, fileName: String): Bitmap? {
+    return try {
+        val assetManager = context.assets
+        val inputStream = assetManager.open(fileName)
+        BitmapFactory.decodeStream(inputStream)
+    } catch (e: IOException) {
+        e.printStackTrace()
+        null
+    }
+}
+
+@Composable
+fun DisplayImageWithBoundingBox(imageUri: Uri,  currentImage: String) {
     // 顔の位置を保持する状態を定義
     var faces by remember { mutableStateOf<List<Rect>>(emptyList()) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -197,14 +238,14 @@ fun DisplayImageWithBoundingBox(imageUri: Uri) {
                 contentScale = ContentScale.Crop
             )
             // 顔の位置に枠を描画
-            DrawBoundingBoxes(faces = faces, offsetWidth = offsetDpWidth, offsetHeight = offsetDpHeight)
+            DrawBoundingBoxes(faces = faces, offsetWidth = offsetDpWidth, offsetHeight = offsetDpHeight, currentImage = currentImage)
         }
     }
 }
 
 
 @Composable
-fun DrawBoundingBoxes(faces: List<Rect>, offsetWidth: Dp, offsetHeight: Dp) {
+fun DrawBoundingBoxes(faces: List<Rect>, offsetWidth: Dp, offsetHeight: Dp, currentImage: String) {
     val context = LocalContext.current
     var shikaBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
 
@@ -213,7 +254,7 @@ fun DrawBoundingBoxes(faces: List<Rect>, offsetWidth: Dp, offsetHeight: Dp) {
             val bitmap = ImageDecoder.decodeBitmap(
                 ImageDecoder.createSource(
                     context.assets,
-                    "tuno1.png"
+                    currentImage
                 )
             )
             shikaBitmap = bitmap.asImageBitmap()
